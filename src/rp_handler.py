@@ -1,16 +1,19 @@
 """
 rp_handler.py for runpod worker
-
-rp_debugger:
-- Utility that provides additional debugging information.
-The handler must be called with --rp_debugger flag to enable it.
 """
+print("=== HANDLER STARTING ===", flush=True)
+
 import base64
 import subprocess
 import tempfile
 from pathlib import Path
 
+print("Basic imports done", flush=True)
+
+print("Importing pyannote...", flush=True)
 from pyannote.audio import Pipeline
+print("Pyannote imported OK", flush=True)
+
 from rp_schema import INPUT_VALIDATIONS
 from runpod.serverless.utils import download_files_from_urls, rp_cleanup, rp_debugger
 from runpod.serverless.utils.rp_validator import validate
@@ -18,6 +21,16 @@ import runpod
 import predict
 import torch
 import numpy as np
+
+print("All imports done", flush=True)
+
+np.NAN = np.nan
+
+print("Setting up model...", flush=True)
+MODEL = predict.Predictor()
+MODEL.setup()
+print("Model setup complete", flush=True)
+
 
 
 np.NAN = np.nan

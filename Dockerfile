@@ -1,6 +1,9 @@
 # faster-whisper turbo needs cudnnn >= 9
 # see https://github.com/runpod-workers/worker-faster_whisper/pull/44
-FROM nvidia/cuda:12.6.3-cudnn-runtime-ubuntu24.04
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+
+# PLACEHOLDER
+ENV HF_TOKEN=""
 
 # Remove any third-party apt sources to avoid issues with expiring keys.
 RUN rm -f /etc/apt/sources.list.d/*.list
@@ -24,8 +27,8 @@ RUN apt-get update -y && \
 # Install Python dependencies
 COPY builder/requirements.txt /requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --break-system-packages huggingface_hub[hf_xet] && \
-    pip install -r /requirements.txt --no-cache-dir --break-system-packages
+    pip install huggingface_hub[hf_xet] && \
+    pip install -r /requirements.txt --no-cache-dir
 
 # Copy and run script to fetch models
 COPY builder/fetch_models.py /fetch_models.py
