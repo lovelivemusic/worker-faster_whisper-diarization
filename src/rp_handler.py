@@ -32,13 +32,6 @@ MODEL.setup()
 print("Model setup complete", flush=True)
 
 
-
-np.NAN = np.nan
-
-MODEL = predict.Predictor()
-MODEL.setup()
-
-
 def base64_to_tempfile(base64_file: str) -> str:
     '''
     Convert base64 file to tempfile.
@@ -84,7 +77,7 @@ def diarize(fpath):
         if speaker not in speakers:
             speakers[speaker] = len(speakers)  # assign ordered index
 
-        segdata = {'start': turn.start, 'end': turn.end, 'speaker': speakers[speaker]}
+        segdata = {'start': float(turn.start), 'end': float(turn.end), 'speaker': speakers[speaker]}
         resp['segments'].append(segdata)
 
     return resp

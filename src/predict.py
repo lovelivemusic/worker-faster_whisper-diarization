@@ -37,7 +37,7 @@ class Predictor:
     def predict(
         self,
         audio,
-        model_name="base",
+        model_name="large-v3",
         transcription="plain_text",
         translate=False,
         translation="plain_text",  # Added in a previous PR
@@ -187,8 +187,8 @@ class Predictor:
                     word_timestamps_list.append(
                         {
                             "word": word.word,
-                            "start": word.start,
-                            "end": word.end,
+                            "start": float(word.start),
+                            "end": float(word.end),
                         }
                     )
             results["word_timestamps"] = word_timestamps_list
@@ -202,16 +202,16 @@ def serialize_segments(transcript):
     """
     return [
         {
-            "id": segment.id,
-            "seek": segment.seek,
-            "start": segment.start,
-            "end": segment.end,
+            "id": int(segment.id),
+            "seek": int(segment.seek),
+            "start": float(segment.start),
+            "end": float(segment.end),
             "text": segment.text,
-            "tokens": segment.tokens,
-            "temperature": segment.temperature,
-            "avg_logprob": segment.avg_logprob,
-            "compression_ratio": segment.compression_ratio,
-            "no_speech_prob": segment.no_speech_prob,
+            "tokens": [int(t) for t in segment.tokens],
+            "temperature": float(segment.temperature),
+            "avg_logprob": float(segment.avg_logprob),
+            "compression_ratio": float(segment.compression_ratio),
+            "no_speech_prob": float(segment.no_speech_prob),
         }
         for segment in transcript
     ]

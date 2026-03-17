@@ -3,7 +3,7 @@
 FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
 # PLACEHOLDER
-ENV HF_TOKEN=""
+ENV HF_TOKEN=
 
 # Remove any third-party apt sources to avoid issues with expiring keys.
 RUN rm -f /etc/apt/sources.list.d/*.list
