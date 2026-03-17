@@ -31,6 +31,12 @@ MODEL = predict.Predictor()
 MODEL.setup()
 print("Model setup complete", flush=True)
 
+# Cache diarization pipeline at startup
+print("Loading diarization pipeline...", flush=True)
+DIARIZE_PIPELINE = Pipeline.from_pretrained('config.yaml')
+DIARIZE_PIPELINE.to(torch.device('cuda'))
+print("Diarization pipeline loaded", flush=True)
+
 
 def base64_to_tempfile(base64_file: str) -> str:
     '''
@@ -68,9 +74,7 @@ def diarize(fpath):
         fpath = _to_wav(fpath)
 
     resp = {'segments': []}
-    pipeline = Pipeline.from_pretrained('config.yaml')
-    pipeline.to(torch.device('cuda'))
-    dia = pipeline(fpath)
+    dia = DIARIZE_PIPELINE(fpath)
 
     speakers = {}
     for turn, _, speaker in dia.itertracks(yield_label=True):
@@ -103,6 +107,15 @@ def run_whisper_job(job):
             return {"error": input_validation['errors']}
         job_input = input_validation['validated_input']
 
+    verbose = job_input.get('verbose', False)
+
+    if verbose:
+        print(f"[VERBOSE] Job ID: {job['id']}", flush=True)
+        print(f"[VERBOSE] Input params: model={job_input['model']}, language={job_input['language']}, "
+              f"diarize={job_input['diarize']}, word_timestamps={job_input['word_timestamps']}", flush=True)
+        print(f"[VERBOSE] Whisper params: beam_size={job_input['beam_size']}, temperature={job_input['temperature']}, "
+              f"no_speech_threshold={job_input['no_speech_threshold']}, condition_on_previous_text={job_input['condition_on_previous_text']}", flush=True)
+
     if not job_input.get('audio', False) and not job_input.get('audio_base64', False):
         return {'error': 'Must provide either audio or audio_base64'}
 
@@ -112,9 +125,18 @@ def run_whisper_job(job):
     if job_input.get('audio', False):
         with rp_debugger.LineTimer('download_step'):
             audio_input = download_files_from_urls(job['id'], [job_input['audio']])[0]
+            if audio_input is None:
+                return {'error': f"Failed to download audio from: {job_input['audio']}"}
+            if verbose:
+                print(f"[VERBOSE] Downloaded audio to: {audio_input}", flush=True)
 
     if job_input.get('audio_base64', False):
         audio_input = base64_to_tempfile(job_input['audio_base64'])
+        if verbose:
+            print(f"[VERBOSE] Decoded base64 audio to: {audio_input}", flush=True)
+
+    if verbose:
+        print("[VERBOSE] Starting transcription...", flush=True)
 
     with rp_debugger.LineTimer('prediction_step'):
         resp = MODEL.predict(
@@ -142,11 +164,21 @@ def run_whisper_job(job):
             no_repeat_ngram_size=job_input["no_repeat_ngram_size"],
         )
 
+    if verbose:
+        print(f"[VERBOSE] Transcription complete. Segments: {len(resp.get('segments', []))}", flush=True)
+
     if job_input['diarize']:
+        if verbose:
+            print("[VERBOSE] Starting diarization...", flush=True)
         resp['diarization'] = diarize(audio_input)
+        if verbose:
+            print(f"[VERBOSE] Diarization complete. Speaker segments: {len(resp['diarization'].get('segments', []))}", flush=True)
 
     with rp_debugger.LineTimer('cleanup_step'):
         rp_cleanup.clean(['input_objects'])
+
+    if verbose:
+        print("[VERBOSE] Job complete.", flush=True)
 
     return resp
 

@@ -32,7 +32,7 @@ This token is required to download the pyannote diarization models during the bu
 | ----------------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `audio`                             | Path  | URL to Audio file                                                                                                                                                      |
 | `audio_base64`                      | str   | Base64-encoded audio file                                                                                                                                              |
-| `model`                             | str   | Choose a Whisper model. Choices: "tiny", "base", "small", "medium", "large-v1", "large-v2", "large-v3", "distil-large-v2", "distil-large-v3", "turbo". Default: "base" |
+| `model`                             | str   | Choose a Whisper model. Choices: "tiny", "large-v2", "large-v3". Default: "large-v3"                                                                                   |
 | `transcription`                     | str   | Choose the format for the transcription. Choices: "plain_text", "formatted_text", "srt", "vtt". Default: "plain_text"                                                  |
 | `translate`                         | bool  | Translate the text to English when set to True. Default: False                                                                                                         |
 | `translation`                       | str   | Choose the format for the translation. Choices: "plain_text", "formatted_text", "srt", "vtt". Default: "plain_text"                                                    |
@@ -53,7 +53,8 @@ This token is required to download the pyannote diarization models during the bu
 | `word_timestamps`                   | bool  | If True, include word timestamps in the output. Default: False                                                                                                         |
 | `repetition_penalty`                | float | To penalize the score of previously generated tokens (set > 1 to penalize). Default: 1.0                                                                               |
 | `no_repeat_ngram_size`              | int   | Prevent repetitions of ngrams with this size. Default: 0                                                                                                               |
-| `diarize`                           | bool  | Perform diarization or not. Default: True                                                                                                               |
+| `diarize`                           | bool  | Perform speaker diarization. Default: True                                                                                                                             |
+| `verbose`                           | bool  | Enable detailed logging for debugging. Default: False                                                                                                                  |
 
 ### Example
 
@@ -101,5 +102,24 @@ producing an output like this:
   "device": "cuda",
   "model": "large-v2",
   "translation_time": 0.3796223163604736
+}
+```
+
+## Performance
+
+- **Diarization pipeline caching**: The pyannote diarization pipeline is loaded once at worker startup and reused for all requests, significantly reducing processing time.
+- **Model caching**: Whisper models are cached after first load.
+
+## Reducing Hallucinations
+
+To reduce Whisper hallucinations (phantom text like "© transcript by..."), use these parameters:
+
+```json
+{
+  "input": {
+    "audio": "https://example.com/audio.mp3",
+    "condition_on_previous_text": false,
+    "no_speech_threshold": 0.8
+  }
 }
 ```
