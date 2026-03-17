@@ -10,6 +10,16 @@ A fork of [Runpod's official Faster Whisper serverless worker](https://github.co
 
 ---
 
+## Building
+
+Before building the Docker image, add your HuggingFace token to the `Dockerfile`:
+
+```dockerfile
+ENV HF_TOKEN=your_huggingface_token_here
+```
+
+This token is required to download the pyannote diarization models during the build process.
+
 ## Models
 
 - tiny
