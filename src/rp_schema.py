@@ -119,4 +119,9 @@ INPUT_VALIDATIONS = {
         'required': False,
         'default': True
     },
+    'verbose': {
+        'type': bool,
+        'required': False,
+        'default': False
+    },
 }
