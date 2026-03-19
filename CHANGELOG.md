@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **RunPod.md**: Documentation for RunPod serverless billing and idle timeout optimization
+  - Explains cost discrepancy between app display and actual billing
+  - Recommended idle timeout settings for different use cases
+  - Cost optimization tips
+
 ## [1.2.0] - 2026-03-17
 
 ### Added
