@@ -100,6 +100,48 @@ def run_whisper_job(job):
     '''
     job_input = job['input']
 
+    # Handle warmup ping — optionally preload WhisperX model
+    if job_input.get('warmup'):
+        worker_verbose = job_input.get('worker_verbose', False)
+        gpu_info = ""
+        if torch.cuda.is_available():
+            gpu_info = (f"GPU: {torch.cuda.get_device_name(0)}, "
+                        f"VRAM: {torch.cuda.get_device_properties(0).total_mem / 1e9:.1f}GB")
+        print(f"[WARMUP] Ping received. {gpu_info}", flush=True)
+
+        preload = job_input.get('preload_model', False)
+        model_loaded = len(MODEL.models) > 0 if MODEL else False
+
+        if preload and not model_loaded:
+            print("[WARMUP] Preloading WhisperX large-v3 model...", flush=True)
+            try:
+                MODEL.predict.__func__  # just verify MODEL exists
+                # Trigger lazy load by calling predict internals
+                with MODEL.model_lock:
+                    if 'large-v3' not in MODEL.models:
+                        from faster_whisper import WhisperModel
+                        from runpod.serverless.utils import rp_cuda
+                        loaded = WhisperModel(
+                            'large-v3',
+                            device="cuda" if rp_cuda.is_available() else "cpu",
+                            compute_type="float16" if rp_cuda.is_available() else "int8",
+                        )
+                        MODEL.models['large-v3'] = loaded
+                        print("[WARMUP] WhisperX large-v3 preloaded successfully", flush=True)
+                    else:
+                        print("[WARMUP] WhisperX large-v3 already loaded", flush=True)
+            except Exception as e:
+                print(f"[WARMUP] Preload failed: {e}", flush=True)
+                return {"status": "warm", "preload": "failed", "error": str(e)}
+        elif preload and model_loaded:
+            print("[WARMUP] Model already loaded, skipping preload", flush=True)
+
+        if worker_verbose:
+            print(f"[WARMUP] Model loaded: {len(MODEL.models) > 0 if MODEL else False}, "
+                  f"Diarization loaded: {DIARIZE_PIPELINE is not None}", flush=True)
+
+        return {"status": "warm", "preload": "done" if preload else "skipped", "model_loaded": len(MODEL.models) > 0 if MODEL else False}
+
     with rp_debugger.LineTimer('validation_step'):
         input_validation = validate(job_input, INPUT_VALIDATIONS)
 
@@ -107,7 +149,7 @@ def run_whisper_job(job):
             return {"error": input_validation['errors']}
         job_input = input_validation['validated_input']
 
-    verbose = job_input.get('verbose', False)
+    verbose = job_input.get('verbose', False) or job_input.get('worker_verbose', False)
 
     if verbose:
         print(f"[VERBOSE] Job ID: {job['id']}", flush=True)
